@@ -1,0 +1,57 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+string onesComplement(string data) {
+    for (int i = 0; i < data.length(); i++) {
+        data[i] = (data[i] == '0') ? '1' : '0';
+    }
+    return data;
+}
+
+string checksum(string data, int block_size) {
+    int n = data.length();
+    if (n % block_size != 0) {
+    data = string(block_size - (n % block_size), '0') + data;
+    }
+    string result = data.substr(0, block_size);
+    for (int i = block_size; i < n; i += block_size) {
+        string nextBlock = data.substr(i, block_size);
+        string additions = "";
+        int carry = 0;
+        for (int j = block_size - 1; j >= 0; j--) {
+            int sum = (nextBlock[j] - '0') + (result[j] - '0') + carry;
+            additions = to_string(sum % 2) + additions;
+            carry = sum / 2;
+        }
+        if (carry == 1) {
+            int idx = 0;
+            while (additions[idx] == '1') {
+                additions[idx] = '0';
+                idx++;
+            }
+            additions[idx] = '1';
+        }
+        result = additions;
+    }
+    return onesComplement(result);
+}
+
+bool checker(string sentMessage, string recvMessage, int blockSize) {
+    string senderChecksum = checksum(sentMessage, blockSize);
+    string receiverChecksum = checksum(recvMessage + senderChecksum, blockSize);
+    cout<<senderChecksum;
+    return (count(receiverChecksum.begin(), receiverChecksum.end(), '0') == blockSize);
+}
+
+int main() {
+    string sentMessage = "10000101011000111001010011101101";
+    string recvMessage = "10000101011000111001010011101101";
+    int blockSize = 8;
+    if (checker(sentMessage, recvMessage, blockSize)) {
+        cout << "No Error";
+    }
+    else {
+        cout << "Error";
+    }
+    return 0;
+}

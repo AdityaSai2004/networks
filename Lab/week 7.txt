@@ -1,0 +1,62 @@
+TCP server : 
+
+import socketserver
+import crcmod
+
+class Handler_TCPServer(socketserver.BaseRequestHandler):
+    def handle(self):
+        # Initialize CRC calculator
+        crc8 = crcmod.predefined.Crc('crc-8')
+
+        self.data = self.request.recv(1024).strip()
+
+        # Split the received data into message and CRC value
+        received_message, received_crc = self.data.decode().split('|')
+
+        # Verify CRC
+        crc8.update(received_message.encode())
+        calculated_crc = crc8.hexdigest()
+
+        if calculated_crc == received_crc:
+            print("{} sent:".format(self.client_address[0]))
+            print(received_message)
+            self.request.sendall("ACK from TCP Server".encode())
+        else:
+            print("CRC Error: Data received with incorrect CRC!")
+
+if __name__ == "__main__":
+    HOST, PORT = "localhost", 9999
+    tcp_server = socketserver.TCPServer((HOST, PORT), Handler_TCPServer)
+    tcp_server.serve_forever()
+    # To abort the TCP server, press Ctrl-C.
+
+
+TCP client: 
+
+
+import socket
+import crcmod
+
+host_ip, server_port = "127.0.0.1", 9999
+data = input("Enter data to be sent: ")
+
+# Initialize CRC calculator
+crc8 = crcmod.predefined.Crc('crc-8')
+
+# Calculate CRC
+crc8.update(data.encode())
+crc_value = crc8.hexdigest()
+
+# Append CRC to the data
+data_with_crc = f"{data}|{crc_value}"
+
+tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    tcp_client.connect((host_ip, server_port))
+    tcp_client.sendall(data_with_crc.encode())
+    received = tcp_client.recv(1024)
+finally:
+    tcp_client.close()
+
+print("Sent: {}".format(data))
+print("Received: {}".format(received.decode()))
